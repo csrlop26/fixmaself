@@ -1,7 +1,7 @@
 import { MUSCLES } from "../data/exercises";
 import RestTimer from "./RestTimer";
 
-export default function ExerciseCard({ exercise, progression, loggedSets, onUpdateSet, onAddSet, onRemoveSet, onOpenGuide }) {
+export default function ExerciseCard({ exercise, progression, loggedSets, onUpdateSet, onAddSet, onRemoveSet, onOpenGuide = () => {} }) {
   const targetLabel = exercise.isTime
     ? `${exercise.sets} × ${exercise.repsLow}-${exercise.repsHigh}s`
     : exercise.repsLow === exercise.repsHigh
