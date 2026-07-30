@@ -11,6 +11,7 @@ import {
   getTonnageSeries,
   getAvgRIRSeries,
 } from "./stats";
+import { addDays, toISODate } from "./dates";
 
 function logsWith(sessions) {
   return { sessions, bodyweight: [] };
@@ -42,6 +43,35 @@ describe("getAdherenceDates / getStreak", () => {
       "2026-07-28": { dayId: "piernaA", status: "missed", sets: [] },
     });
     expect(getAdherenceDates(logs)).toEqual(["2026-07-29"]);
+  });
+
+  it("counts consecutive trained days ending today", () => {
+    const today = new Date();
+    const logs = logsWith({
+      [toISODate(today)]: { dayId: "torsoA", status: "trained", sets: [] },
+      [toISODate(addDays(today, -1))]: { dayId: "piernaA", status: "trained", sets: [] },
+      [toISODate(addDays(today, -2))]: { dayId: "torsoB", status: "trained", sets: [] },
+      [toISODate(addDays(today, -3))]: { dayId: "piernaB", status: "missed", sets: [] },
+    });
+    expect(getStreak(logs)).toBe(3);
+  });
+
+  it("still counts the streak when today has not been trained yet (tolerance)", () => {
+    const today = new Date();
+    const logs = logsWith({
+      [toISODate(addDays(today, -1))]: { dayId: "torsoA", status: "trained", sets: [] },
+      [toISODate(addDays(today, -2))]: { dayId: "piernaA", status: "trained", sets: [] },
+      [toISODate(addDays(today, -3))]: { dayId: "torsoB", status: "missed", sets: [] },
+    });
+    expect(getStreak(logs)).toBe(2);
+  });
+
+  it("returns 0 when today is untrained and yesterday was also not trained", () => {
+    const today = new Date();
+    const logs = logsWith({
+      [toISODate(addDays(today, -2))]: { dayId: "torsoA", status: "trained", sets: [] },
+    });
+    expect(getStreak(logs)).toBe(0);
   });
 });
 
@@ -93,6 +123,23 @@ describe("getPRs", () => {
     });
     const prs = getPRs(logs);
     expect(prs["ta-1"]).toEqual({ bestWeight: 42.5, bestWeightDate: "2026-07-28" });
+  });
+
+  it("never produces a PR entry for isometric (isTime) exercises like Plancha frontal", () => {
+    const logs = logsWith({
+      "2026-07-14": {
+        dayId: "torsoA",
+        status: "trained",
+        sets: [{ exerciseId: "ta-6", weight: "", reps: 45, rir: null, setNumber: 1 }],
+      },
+      "2026-07-28": {
+        dayId: "torsoA",
+        status: "trained",
+        sets: [{ exerciseId: "ta-6", weight: "", reps: 60, rir: null, setNumber: 1 }],
+      },
+    });
+    const prs = getPRs(logs);
+    expect(prs["ta-6"]).toBeUndefined();
   });
 });
 

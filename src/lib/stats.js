@@ -80,6 +80,7 @@ export function getPRs(logs) {
   const prs = {};
   Object.entries(logs.sessions).forEach(([dateISO, session]) => {
     session.sets.forEach((s) => {
+      if (EXERCISES[s.exerciseId]?.isTime) return;
       const weight = Number(s.weight) || 0;
       const current = prs[s.exerciseId];
       if (!current || weight > current.bestWeight) {
