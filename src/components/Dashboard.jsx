@@ -1,30 +1,11 @@
-import { DAYS, PHASE0_WEEKS, DELOAD_EVERY_WEEKS, WARNING_SIGNS } from "../data/routine";
-import { diffInWeeks, toISODate, addDays } from "../lib/dates";
-import { getStreak, getAdherenceDates } from "../lib/stats";
+import { PROGRAM, PHASE0_WEEKS, DELOAD_EVERY_WEEKS, WARNING_SIGNS } from "../data/program";
+import { diffInWeeks } from "../lib/dates";
+import { getStreak } from "../lib/stats";
+import Heatmap from "./Heatmap";
 
 function getTodaySession() {
   const weekday = new Date().getDay();
-  return DAYS.find((d) => d.weekday === weekday) || null;
-}
-
-function Heatmap({ logs }) {
-  const adherent = new Set(getAdherenceDates(logs));
-  const cells = [];
-  for (let i = 13; i >= 0; i--) {
-    const dateISO = toISODate(addDays(new Date(), -i));
-    cells.push({ dateISO, on: adherent.has(dateISO) });
-  }
-  return (
-    <div className="flex gap-1">
-      {cells.map((c) => (
-        <div
-          key={c.dateISO}
-          title={c.dateISO}
-          className={`h-5 w-5 rounded-sm ${c.on ? "bg-progress" : "bg-panel-2 border border-line/60"}`}
-        />
-      ))}
-    </div>
-  );
+  return PROGRAM.days.find((d) => d.weekday === weekday) || null;
 }
 
 export default function Dashboard({ settings, logs, onNavigate }) {
