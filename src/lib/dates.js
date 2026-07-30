@@ -42,3 +42,18 @@ export function diffInDays(fromISO, toDate = new Date()) {
 }
 
 export const WEEKDAY_LABELS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+export function getMonthMatrix(year, month) {
+  const first = new Date(year, month, 1);
+  const startWeekday = first.getDay() === 0 ? 6 : first.getDay() - 1; // lunes = 0
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let day = 1; day <= daysInMonth; day++) cells.push(new Date(year, month, day));
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const weeks = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  return weeks;
+}
