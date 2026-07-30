@@ -1,55 +1,67 @@
 import { useState } from "react";
-import { DAYS, WARMUP } from "../data/routine";
+import { PROGRAM } from "../data/program";
+import { EXERCISES } from "../data/exercises";
 import { todayISO } from "../lib/dates";
+import { getExerciseSets, setExerciseSets } from "../lib/logs";
+import { getExerciseHistory } from "../lib/stats";
+import { suggestProgression } from "../lib/progression";
 import ExerciseCard from "./ExerciseCard";
 
 function getTodayDayId() {
   const weekday = new Date().getDay();
-  const found = DAYS.find((d) => d.weekday === weekday);
-  return found ? found.id : DAYS[0].id;
+  const found = PROGRAM.days.find((d) => d.weekday === weekday);
+  return found ? found.id : PROGRAM.days[0].id;
 }
 
 export default function SessionView({ logs, setLogs }) {
   const [dayId, setDayId] = useState(getTodayDayId());
   const [showWarmup, setShowWarmup] = useState(false);
-  const day = DAYS.find((d) => d.id === dayId);
+  const [showCooldown, setShowCooldown] = useState(false);
+  const [guideExerciseId, setGuideExerciseId] = useState(null);
+  const day = PROGRAM.days.find((d) => d.id === dayId);
   const dateISO = todayISO();
 
-  const dayLog = logs[dateISO]?.entries || {};
+  function mergedExercise(programExercise) {
+    return { ...EXERCISES[programExercise.exerciseId], ...programExercise };
+  }
 
-  function getSetsFor(exercise) {
-    const existing = dayLog[exercise.id];
-    if (existing && existing.length > 0) return existing;
-    return Array.from({ length: exercise.sets }, () => ({ weight: "", reps: "" }));
+  function getSetsFor(programExercise) {
+    const existing = getExerciseSets(logs, dateISO, programExercise.exerciseId);
+    if (existing.length > 0) return existing;
+    return Array.from({ length: programExercise.sets }, () => ({ weight: "", reps: "", rir: "" }));
+  }
+
+  function progressionFor(programExercise) {
+    const history = getExerciseHistory(logs, programExercise.exerciseId)
+      .filter((h) => h.date !== dateISO)
+      .slice(-2)
+      .reverse()
+      .map((h) => ({
+        date: h.date,
+        sets: logs.sessions[h.date].sets.filter((s) => s.exerciseId === programExercise.exerciseId),
+      }));
+    if (history.length === 0) return null;
+    return suggestProgression(history, programExercise);
   }
 
   function updateEntries(exerciseId, sets) {
-    setLogs((prev) => {
-      const prevDay = prev[dateISO] || { dayId, entries: {} };
-      return {
-        ...prev,
-        [dateISO]: {
-          dayId,
-          entries: { ...prevDay.entries, [exerciseId]: sets },
-        },
-      };
-    });
+    setLogs((prev) => setExerciseSets(prev, dateISO, dayId, exerciseId, sets));
   }
 
-  function handleUpdateSet(exercise, idx, field, value) {
-    const sets = [...getSetsFor(exercise)];
+  function handleUpdateSet(programExercise, idx, field, value) {
+    const sets = [...getSetsFor(programExercise)];
     sets[idx] = { ...sets[idx], [field]: value };
-    updateEntries(exercise.id, sets);
+    updateEntries(programExercise.exerciseId, sets);
   }
 
-  function handleAddSet(exercise) {
-    const sets = [...getSetsFor(exercise), { weight: "", reps: "" }];
-    updateEntries(exercise.id, sets);
+  function handleAddSet(programExercise) {
+    const sets = [...getSetsFor(programExercise), { weight: "", reps: "", rir: "" }];
+    updateEntries(programExercise.exerciseId, sets);
   }
 
-  function handleRemoveSet(exercise, idx) {
-    const sets = getSetsFor(exercise).filter((_, i) => i !== idx);
-    updateEntries(exercise.id, sets);
+  function handleRemoveSet(programExercise, idx) {
+    const sets = getSetsFor(programExercise).filter((_, i) => i !== idx);
+    updateEntries(programExercise.exerciseId, sets);
   }
 
   return (
@@ -60,14 +72,12 @@ export default function SessionView({ logs, setLogs }) {
       </header>
 
       <div className="flex flex-wrap gap-2">
-        {DAYS.map((d) => (
+        {PROGRAM.days.map((d) => (
           <button
             key={d.id}
             onClick={() => setDayId(d.id)}
             className={`rounded px-3 py-1.5 font-mono text-xs uppercase tracking-wide border ${
-              dayId === d.id
-                ? "border-progress text-progress bg-progress-dim/40"
-                : "border-line/60 text-muted hover:text-ink"
+              dayId === d.id ? "border-progress text-progress bg-progress-dim/40" : "border-line/60 text-muted hover:text-ink"
             }`}
           >
             {d.label}
@@ -80,32 +90,85 @@ export default function SessionView({ logs, setLogs }) {
           onClick={() => setShowWarmup((s) => !s)}
           className="w-full flex items-center justify-between px-4 py-3 font-mono text-xs uppercase tracking-wide text-muted"
         >
-          Calentamiento fijo (5-7 min)
+          Calentamiento ({day.label})
           <span>{showWarmup ? "−" : "+"}</span>
         </button>
         {showWarmup && (
           <ul className="px-4 pb-4 space-y-1 text-sm text-muted">
-            {WARMUP.map((w) => (
-              <li key={w.name}>
-                · {w.name} <span className="text-faint">{w.reps}</span>
-              </li>
+            {day.warmup.map((w) => (
+              <li key={w.name}>· {w.name} <span className="text-faint">{w.reps}</span></li>
             ))}
           </ul>
         )}
       </div>
 
       <div className="space-y-4">
-        {day.exercises.map((exercise) => (
-          <ExerciseCard
-            key={exercise.id}
-            exercise={exercise}
-            loggedSets={getSetsFor(exercise)}
-            onUpdateSet={(idx, field, value) => handleUpdateSet(exercise, idx, field, value)}
-            onAddSet={() => handleAddSet(exercise)}
-            onRemoveSet={(idx) => handleRemoveSet(exercise, idx)}
-          />
-        ))}
+        {day.exercises
+          .slice()
+          .sort((a, b) => a.order - b.order)
+          .map((programExercise) => {
+            const exercise = mergedExercise(programExercise);
+            return (
+              <ExerciseCard
+                key={exercise.id}
+                exercise={exercise}
+                progression={progressionFor(programExercise)}
+                loggedSets={getSetsFor(programExercise)}
+                onUpdateSet={(idx, field, value) => handleUpdateSet(programExercise, idx, field, value)}
+                onAddSet={() => handleAddSet(programExercise)}
+                onRemoveSet={(idx) => handleRemoveSet(programExercise, idx)}
+                onOpenGuide={() => setGuideExerciseId(exercise.id)}
+              />
+            );
+          })}
       </div>
+
+      <div className="rounded border border-line/60 bg-panel">
+        <button
+          onClick={() => setShowCooldown((s) => !s)}
+          className="w-full flex items-center justify-between px-4 py-3 font-mono text-xs uppercase tracking-wide text-muted"
+        >
+          Estiramientos de cierre
+          <span>{showCooldown ? "−" : "+"}</span>
+        </button>
+        {showCooldown && (
+          <ul className="px-4 pb-4 space-y-1 text-sm text-muted">
+            {day.cooldown.map((w) => (
+              <li key={w.name}>· {w.name} <span className="text-faint">{w.reps}</span></li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {guideExerciseId && (
+        <div className="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-black/60 p-4" onClick={() => setGuideExerciseId(null)}>
+          <div
+            className="max-w-md w-full rounded border border-line/60 bg-panel p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(() => {
+              const ex = EXERCISES[guideExerciseId];
+              return (
+                <>
+                  <h3 className="text-ink font-medium">{ex.name}</h3>
+                  <div className="mt-1 font-mono text-[11px] text-blueprint">{ex.equipment}</div>
+                  {ex.proTips.length > 0 && (
+                    <ul className="mt-3 text-sm text-muted space-y-1">
+                      {ex.proTips.map((t) => <li key={t}>· {t}</li>)}
+                    </ul>
+                  )}
+                  <button
+                    onClick={() => setGuideExerciseId(null)}
+                    className="mt-4 font-mono text-[11px] text-faint hover:text-ink"
+                  >
+                    cerrar
+                  </button>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
