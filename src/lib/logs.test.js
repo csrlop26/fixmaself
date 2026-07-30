@@ -1,7 +1,49 @@
 import { describe, it, expect } from "vitest";
-import { getSession, getExerciseSets, setExerciseSets, markAttendance, addBodyweightEntry, getBodyweightSeries } from "./logs";
+import { getSession, getExerciseSets, setExerciseSets, markAttendance, addBodyweightEntry, getBodyweightSeries, normalizeLogs } from "./logs";
 
 const EMPTY_LOGS = { sessions: {}, bodyweight: [] };
+
+describe("normalizeLogs", () => {
+  it("passes through an already-valid new-shape object unchanged", () => {
+    const logs = { sessions: { "2026-07-30": { dayId: "torsoA", status: "trained", sets: [], durationMin: null, note: "" } }, bodyweight: [] };
+    expect(normalizeLogs(logs)).toBe(logs);
+  });
+
+  it("converts an empty object (e.g. from the old reset bug) to a safe empty shape", () => {
+    expect(normalizeLogs({})).toEqual({ sessions: {}, bodyweight: [] });
+  });
+
+  it("converts null/undefined to a safe empty shape", () => {
+    expect(normalizeLogs(null)).toEqual({ sessions: {}, bodyweight: [] });
+    expect(normalizeLogs(undefined)).toEqual({ sessions: {}, bodyweight: [] });
+  });
+
+  it("migrates legacy { [date]: { dayId, entries } } logs into the new sets-array shape", () => {
+    const legacy = {
+      "2026-07-30": {
+        dayId: "torsoA",
+        entries: {
+          "ta-1": [{ weight: "40", reps: "9" }, { weight: "40", reps: "8" }],
+          "ta-2": [{ weight: "20", reps: "10" }],
+        },
+      },
+    };
+    const result = normalizeLogs(legacy);
+    expect(result.bodyweight).toEqual([]);
+    expect(result.sessions["2026-07-30"].dayId).toBe("torsoA");
+    expect(result.sessions["2026-07-30"].status).toBe("trained");
+    expect(result.sessions["2026-07-30"].sets).toEqual([
+      { exerciseId: "ta-1", weight: "40", reps: "9", rir: "", setNumber: 1 },
+      { exerciseId: "ta-1", weight: "40", reps: "8", rir: "", setNumber: 2 },
+      { exerciseId: "ta-2", weight: "20", reps: "10", rir: "", setNumber: 1 },
+    ]);
+  });
+
+  it("drops legacy days that logged no real sets", () => {
+    const legacy = { "2026-07-29": { dayId: "piernaA", entries: {} } };
+    expect(normalizeLogs(legacy)).toEqual({ sessions: {}, bodyweight: [] });
+  });
+});
 
 describe("getSession", () => {
   it("returns null when the session does not exist", () => {

@@ -8,6 +8,7 @@ import GuideView from "./components/GuideView";
 import SettingsView from "./components/SettingsView";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { todayISO } from "./lib/dates";
+import { normalizeLogs } from "./lib/logs";
 
 const DEFAULT_SETTINGS = {
   weightKg: 75,
@@ -21,7 +22,15 @@ const DEFAULT_LOGS = { sessions: {}, bodyweight: [] };
 export default function App() {
   const [tab, setTab] = useState("dashboard");
   const [settings, setSettings] = useLocalStorage("gd-settings", DEFAULT_SETTINGS);
-  const [logs, setLogs] = useLocalStorage("gd-logs", DEFAULT_LOGS);
+  const [rawLogs, setRawLogs] = useLocalStorage("gd-logs", DEFAULT_LOGS);
+  const logs = normalizeLogs(rawLogs);
+  const setLogs = (update) => {
+    setRawLogs((prev) => {
+      const safePrev = normalizeLogs(prev);
+      const next = typeof update === "function" ? update(safePrev) : update;
+      return normalizeLogs(next);
+    });
+  };
 
   return (
     <div className="min-h-screen flex bg-bg">

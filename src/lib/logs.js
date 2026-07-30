@@ -5,6 +5,33 @@ function emptySession(dayId) {
   return { dayId, status: "trained", sets: [], durationMin: null, note: "" };
 }
 
+// Convierte cualquier valor leído de localStorage (forma nueva ya válida, forma
+// antigua { [fecha]: { dayId, entries: { [exerciseId]: [{weight,reps}] } } },
+// o basura/`{}` de versiones rotas anteriores) a la forma nueva válida.
+export function normalizeLogs(raw) {
+  if (raw && typeof raw === "object" && "sessions" in raw && "bodyweight" in raw) {
+    return raw;
+  }
+  if (!raw || typeof raw !== "object") {
+    return { sessions: {}, bodyweight: [] };
+  }
+  const sessions = {};
+  Object.entries(raw).forEach(([dateISO, day]) => {
+    if (!day || typeof day !== "object") return;
+    const entries = day.entries || {};
+    const sets = [];
+    Object.entries(entries).forEach(([exerciseId, exSets]) => {
+      (Array.isArray(exSets) ? exSets : []).forEach((s, idx) => {
+        sets.push({ exerciseId, weight: s?.weight ?? "", reps: s?.reps ?? "", rir: "", setNumber: idx + 1 });
+      });
+    });
+    if (sets.length > 0) {
+      sessions[dateISO] = { dayId: day.dayId, status: "trained", sets, durationMin: null, note: "" };
+    }
+  });
+  return { sessions, bodyweight: [] };
+}
+
 export function getSession(logs, dateISO) {
   return logs.sessions[dateISO] || null;
 }
