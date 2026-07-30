@@ -1,7 +1,23 @@
 import { describe, it, expect } from "vitest";
-import { getExerciseSets, setExerciseSets, markAttendance, addBodyweightEntry, getBodyweightSeries } from "./logs";
+import { getSession, getExerciseSets, setExerciseSets, markAttendance, addBodyweightEntry, getBodyweightSeries } from "./logs";
 
 const EMPTY_LOGS = { sessions: {}, bodyweight: [] };
+
+describe("getSession", () => {
+  it("returns null when the session does not exist", () => {
+    expect(getSession(EMPTY_LOGS, "2026-07-30")).toBeNull();
+  });
+
+  it("returns the session when it exists", () => {
+    const logs = {
+      sessions: {
+        "2026-07-30": { dayId: "torsoA", status: "trained", sets: [], durationMin: null, note: "" },
+      },
+      bodyweight: [],
+    };
+    expect(getSession(logs, "2026-07-30")).toEqual(logs.sessions["2026-07-30"]);
+  });
+});
 
 describe("getExerciseSets", () => {
   it("returns empty array when the session does not exist", () => {
@@ -73,6 +89,23 @@ describe("setExerciseSets", () => {
     expect(EMPTY_LOGS.sessions).toEqual({});
     expect(result).not.toBe(EMPTY_LOGS);
   });
+
+  it("clears sets when called with an empty array", () => {
+    const logs = {
+      sessions: {
+        "2026-07-30": {
+          dayId: "torsoA",
+          status: "trained",
+          sets: [{ exerciseId: "ta-1", weight: 40, reps: 9, rir: 2, setNumber: 1 }],
+          durationMin: null,
+          note: "",
+        },
+      },
+      bodyweight: [],
+    };
+    const result = setExerciseSets(logs, "2026-07-30", "torsoA", "ta-1", []);
+    expect(result.sessions["2026-07-30"].sets).toEqual([]);
+  });
 });
 
 describe("markAttendance", () => {
@@ -103,6 +136,12 @@ describe("markAttendance", () => {
     const result = markAttendance(logs, "2026-07-30", "torsoA", "rest", "");
     expect(result.sessions["2026-07-30"].status).toBe("rest");
     expect(result.sessions["2026-07-30"].sets).toEqual(logs.sessions["2026-07-30"].sets);
+  });
+
+  it("does not mutate the original logs object", () => {
+    const result = markAttendance(EMPTY_LOGS, "2026-07-31", "piernaA", "missed", "");
+    expect(EMPTY_LOGS.sessions).toEqual({});
+    expect(result).not.toBe(EMPTY_LOGS);
   });
 });
 

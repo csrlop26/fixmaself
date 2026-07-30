@@ -49,11 +49,11 @@ export function markAttendance(logs, dateISO, dayId, status, note = "") {
 export function addBodyweightEntry(logs, dateISO, kg) {
   const withoutDate = logs.bodyweight.filter((e) => e.date !== dateISO);
   const next = [...withoutDate, { date: dateISO, kg }].sort((a, b) =>
-    a.date > b.date ? 1 : -1
+    a.date.localeCompare(b.date)
   );
   return { ...logs, bodyweight: next };
 }
 
 export function getBodyweightSeries(logs) {
-  return [...logs.bodyweight].sort((a, b) => (a.date > b.date ? 1 : -1));
+  return [...logs.bodyweight].sort((a, b) => a.date.localeCompare(b.date));
 }
