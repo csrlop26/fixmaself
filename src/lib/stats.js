@@ -41,6 +41,8 @@ export function getAdherenceRate(logs, program, sinceISO, referenceDate = new Da
   const scheduledWeekdays = new Set(program.days.map((d) => d.weekday));
   let planned = 0;
   let completed = 0;
+  // sinceISO se parsea como UTC medianoche; getDay() usa hora local. Aceptable porque
+  // los llamadores siempre pasan strings YYYY-MM-DD planos, nunca Date arbitrarios.
   let cursor = new Date(sinceISO);
   const end = new Date(toISODate(referenceDate));
   while (cursor <= end) {
