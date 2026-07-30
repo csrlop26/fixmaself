@@ -2,6 +2,7 @@ import { useState } from "react";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
 import SessionView from "./components/SessionView";
+import CalendarView from "./components/CalendarView";
 import ProgressView from "./components/ProgressView";
 import GuideView from "./components/GuideView";
 import SettingsView from "./components/SettingsView";
@@ -15,10 +16,12 @@ const DEFAULT_SETTINGS = {
   startDate: todayISO(),
 };
 
+const DEFAULT_LOGS = { sessions: {}, bodyweight: [] };
+
 export default function App() {
   const [tab, setTab] = useState("dashboard");
   const [settings, setSettings] = useLocalStorage("gd-settings", DEFAULT_SETTINGS);
-  const [logs, setLogs] = useLocalStorage("gd-logs", {});
+  const [logs, setLogs] = useLocalStorage("gd-logs", DEFAULT_LOGS);
 
   return (
     <div className="min-h-screen flex bg-bg">
@@ -30,6 +33,7 @@ export default function App() {
             <Dashboard settings={settings} logs={logs} onNavigate={setTab} />
           )}
           {tab === "session" && <SessionView logs={logs} setLogs={setLogs} />}
+          {tab === "calendar" && <CalendarView logs={logs} setLogs={setLogs} />}
           {tab === "progress" && <ProgressView logs={logs} />}
           {tab === "guide" && <GuideView />}
           {tab === "settings" && (
