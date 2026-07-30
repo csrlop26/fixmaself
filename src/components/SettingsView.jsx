@@ -1,7 +1,10 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { addBodyweightEntry } from "../lib/logs";
+import { todayISO } from "../lib/dates";
 
 export default function SettingsView({ settings, setSettings, logs, setLogs }) {
   const fileInput = useRef(null);
+  const [bwInput, setBwInput] = useState("");
 
   function update(field, value) {
     setSettings((prev) => ({ ...prev, [field]: value }));
@@ -39,6 +42,11 @@ export default function SettingsView({ settings, setSettings, logs, setLogs }) {
     if (window.confirm("Esto borrará todo tu historial de series registradas. ¿Seguro?")) {
       setLogs({});
     }
+  }
+
+  function handleLogBodyweight(kg) {
+    if (!kg) return;
+    setLogs((prev) => addBodyweightEntry(prev, todayISO(), Number(kg)));
   }
 
   return (
@@ -91,6 +99,27 @@ export default function SettingsView({ settings, setSettings, logs, setLogs }) {
         <p className="mt-3 text-xs text-faint">
           La fecha de inicio determina en qué semana/fase estás en el Dashboard.
         </p>
+      </section>
+
+      <section className="rounded border border-line/60 bg-panel p-4 sm:p-5">
+        <h2 className="font-mono text-xs uppercase tracking-wide text-muted mb-3">Peso corporal de hoy</h2>
+        <div className="flex gap-3 max-w-xs">
+          <input
+            type="number"
+            inputMode="decimal"
+            value={bwInput}
+            onChange={(e) => setBwInput(e.target.value)}
+            placeholder="kg"
+            className="w-full rounded bg-panel-2 border border-line/60 px-2 py-1.5 text-ink"
+          />
+          <button
+            onClick={() => { handleLogBodyweight(bwInput); setBwInput(""); }}
+            className="rounded bg-progress-dim text-progress font-mono text-xs uppercase tracking-wide px-4 py-2 hover:brightness-125"
+          >
+            Guardar
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-faint">Se ve reflejado en Progreso → Peso corporal.</p>
       </section>
 
       <section className="rounded border border-line/60 bg-panel p-4 sm:p-5">
