@@ -3,6 +3,7 @@ import {
   getWeeklyMuscleVolume,
   getAdherenceDates,
   getStreak,
+  getAdherenceRate,
   getExerciseHistory,
   getLoggedExerciseIds,
   getPRs,
@@ -92,6 +93,24 @@ describe("getPRs", () => {
     });
     const prs = getPRs(logs);
     expect(prs["ta-1"]).toEqual({ bestWeight: 42.5, bestWeightDate: "2026-07-28" });
+  });
+});
+
+describe("getAdherenceRate", () => {
+  it("counts trained sessions against scheduled program weekdays within the date range", () => {
+    // 2026-07-27 is a Monday, 2026-07-28 Tuesday, 2026-07-29 Wednesday, 2026-07-30 Thursday
+    const program = {
+      days: [
+        { weekday: 1 }, // lunes
+        { weekday: 4 }, // jueves
+      ],
+    };
+    const logs = logsWith({
+      "2026-07-27": { dayId: "torsoA", status: "trained", sets: [] }, // lunes, planned + completed
+      "2026-07-30": { dayId: "torsoB", status: "missed", sets: [] }, // jueves, planned, not completed
+    });
+    const result = getAdherenceRate(logs, program, "2026-07-27", new Date("2026-07-30"));
+    expect(result).toEqual({ planned: 2, completed: 1, pct: 50 });
   });
 });
 
