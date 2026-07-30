@@ -1,4 +1,5 @@
-import { PHASE0_WEEKS, NUTRITION, WARNING_SIGNS, PROGRESSION_NOTES, WARMUP } from "../data/routine";
+import { PHASE0_WEEKS, NUTRITION, WARNING_SIGNS, PROGRESSION_NOTES } from "../data/program";
+import ExerciseLibrary from "./ExerciseLibrary";
 
 function Section({ title, children }) {
   return (
@@ -17,22 +18,16 @@ export default function GuideView() {
         <h1 className="font-mono text-2xl text-ink mt-1">Referencia de la rutina</h1>
       </header>
 
+      <Section title="Biblioteca de ejercicios">
+        <ExerciseLibrary />
+      </Section>
+
       <Section title={`Fase 0 — cimentación (semanas 1-${PHASE0_WEEKS})`}>
         <p className="text-sm text-muted">
           Antes de cargar patrones de bisagra de cadera pesados, construyes control de tronco.
           Todos los ejercicios de pierna/bisagra usan máquina o rango controlado, no barra libre
           desde el suelo. No te la saltes.
         </p>
-        <div className="mt-3">
-          <div className="font-mono text-[11px] text-blueprint uppercase tracking-wide mb-1">
-            Calentamiento fijo (5-7 min, cada sesión)
-          </div>
-          <ul className="text-sm text-muted space-y-0.5">
-            {WARMUP.map((w) => (
-              <li key={w.name}>· {w.name} <span className="text-faint">{w.reps}</span></li>
-            ))}
-          </ul>
-        </div>
       </Section>
 
       <Section title="Progresión">
