@@ -1,0 +1,124 @@
+import { describe, it, expect } from "vitest";
+import { getExerciseSets, setExerciseSets, markAttendance, addBodyweightEntry, getBodyweightSeries } from "./logs";
+
+const EMPTY_LOGS = { sessions: {}, bodyweight: [] };
+
+describe("getExerciseSets", () => {
+  it("returns empty array when the session does not exist", () => {
+    expect(getExerciseSets(EMPTY_LOGS, "2026-07-30", "ta-1")).toEqual([]);
+  });
+
+  it("returns only the sets for the requested exercise, ordered by setNumber", () => {
+    const logs = {
+      sessions: {
+        "2026-07-30": {
+          dayId: "torsoA",
+          status: "trained",
+          sets: [
+            { exerciseId: "ta-2", weight: 20, reps: 10, rir: 2, setNumber: 1 },
+            { exerciseId: "ta-1", weight: 40, reps: 8, rir: 2, setNumber: 2 },
+            { exerciseId: "ta-1", weight: 40, reps: 9, rir: 2, setNumber: 1 },
+          ],
+        },
+      },
+      bodyweight: [],
+    };
+    expect(getExerciseSets(logs, "2026-07-30", "ta-1")).toEqual([
+      { exerciseId: "ta-1", weight: 40, reps: 9, rir: 2, setNumber: 1 },
+      { exerciseId: "ta-1", weight: 40, reps: 8, rir: 2, setNumber: 2 },
+    ]);
+  });
+});
+
+describe("setExerciseSets", () => {
+  it("creates a new trained session with the given sets when none existed", () => {
+    const result = setExerciseSets(EMPTY_LOGS, "2026-07-30", "torsoA", "ta-1", [
+      { weight: 40, reps: 9, rir: 2 },
+    ]);
+    expect(result.sessions["2026-07-30"]).toEqual({
+      dayId: "torsoA",
+      status: "trained",
+      sets: [{ exerciseId: "ta-1", weight: 40, reps: 9, rir: 2, setNumber: 1 }],
+      durationMin: null,
+      note: "",
+    });
+  });
+
+  it("replaces only the target exercise's sets, keeping other exercises intact", () => {
+    const logs = {
+      sessions: {
+        "2026-07-30": {
+          dayId: "torsoA",
+          status: "trained",
+          sets: [{ exerciseId: "ta-2", weight: 20, reps: 10, rir: 2, setNumber: 1 }],
+          durationMin: null,
+          note: "",
+        },
+      },
+      bodyweight: [],
+    };
+    const result = setExerciseSets(logs, "2026-07-30", "torsoA", "ta-1", [
+      { weight: 40, reps: 9, rir: 2 },
+    ]);
+    expect(result.sessions["2026-07-30"].sets).toEqual([
+      { exerciseId: "ta-2", weight: 20, reps: 10, rir: 2, setNumber: 1 },
+      { exerciseId: "ta-1", weight: 40, reps: 9, rir: 2, setNumber: 1 },
+    ]);
+  });
+
+  it("does not mutate the original logs object", () => {
+    const result = setExerciseSets(EMPTY_LOGS, "2026-07-30", "torsoA", "ta-1", [
+      { weight: 40, reps: 9, rir: 2 },
+    ]);
+    expect(EMPTY_LOGS.sessions).toEqual({});
+    expect(result).not.toBe(EMPTY_LOGS);
+  });
+});
+
+describe("markAttendance", () => {
+  it("sets a manual status on a day with no prior session", () => {
+    const result = markAttendance(EMPTY_LOGS, "2026-07-31", "piernaA", "missed", "dolor de espalda");
+    expect(result.sessions["2026-07-31"]).toEqual({
+      dayId: "piernaA",
+      status: "missed",
+      sets: [],
+      durationMin: null,
+      note: "dolor de espalda",
+    });
+  });
+
+  it("overrides status on an existing session without dropping its sets", () => {
+    const logs = {
+      sessions: {
+        "2026-07-30": {
+          dayId: "torsoA",
+          status: "trained",
+          sets: [{ exerciseId: "ta-1", weight: 40, reps: 9, rir: 2, setNumber: 1 }],
+          durationMin: null,
+          note: "",
+        },
+      },
+      bodyweight: [],
+    };
+    const result = markAttendance(logs, "2026-07-30", "torsoA", "rest", "");
+    expect(result.sessions["2026-07-30"].status).toBe("rest");
+    expect(result.sessions["2026-07-30"].sets).toEqual(logs.sessions["2026-07-30"].sets);
+  });
+});
+
+describe("bodyweight", () => {
+  it("adds a new entry sorted by date", () => {
+    let logs = addBodyweightEntry(EMPTY_LOGS, "2026-07-30", 75.2);
+    logs = addBodyweightEntry(logs, "2026-07-15", 75.8);
+    expect(getBodyweightSeries(logs)).toEqual([
+      { date: "2026-07-15", kg: 75.8 },
+      { date: "2026-07-30", kg: 75.2 },
+    ]);
+  });
+
+  it("upserts an existing date instead of duplicating it", () => {
+    let logs = addBodyweightEntry(EMPTY_LOGS, "2026-07-30", 75.2);
+    logs = addBodyweightEntry(logs, "2026-07-30", 74.9);
+    expect(getBodyweightSeries(logs)).toEqual([{ date: "2026-07-30", kg: 74.9 }]);
+  });
+});
