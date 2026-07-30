@@ -1,9 +1,10 @@
 const TABS = [
   { id: "dashboard", label: "Dashboard", num: "01" },
   { id: "session", label: "Sesión", num: "02" },
-  { id: "progress", label: "Progreso", num: "03" },
-  { id: "guide", label: "Guía", num: "04" },
-  { id: "settings", label: "Ajustes", num: "05" },
+  { id: "calendar", label: "Calendario", num: "03" },
+  { id: "progress", label: "Progreso", num: "04" },
+  { id: "guide", label: "Guía", num: "05" },
+  { id: "settings", label: "Ajustes", num: "06" },
 ];
 
 export default function Sidebar({ active, onChange }) {
