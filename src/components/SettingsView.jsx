@@ -40,7 +40,7 @@ export default function SettingsView({ settings, setSettings, logs, setLogs }) {
 
   function handleReset() {
     if (window.confirm("Esto borrará todo tu historial de series registradas. ¿Seguro?")) {
-      setLogs({});
+      setLogs({ sessions: {}, bodyweight: [] });
     }
   }
 
