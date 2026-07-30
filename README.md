@@ -48,11 +48,12 @@ seguridad).
 
 ```
 src/
-  data/routine.js        ← toda la rutina (ejercicios, series, notas) en un solo sitio
-  lib/                    ← utilidades de fechas y cálculo de estadísticas
-  hooks/useLocalStorage   ← persistencia
-  components/             ← Dashboard, Sesión, Progreso, Guía, Ajustes
+  data/exercises.js      ← biblioteca de ejercicios (nombre, músculo, pro tips, media)
+  data/program.js         ← rutina semanal activa (referencias a exercises.js + series/reps/descanso)
+  lib/                     ← fechas, estadísticas, motor de progresión, helpers de logs
+  hooks/useLocalStorage    ← persistencia
+  components/              ← Dashboard, Sesión, Calendario, Progreso, Guía, Ajustes
 ```
 
-Para modificar la rutina (añadir/quitar ejercicios, cambiar series/reps), edita únicamente
-`src/data/routine.js` — el resto de la app se actualiza sola.
+Para cambiar la rutina activa, edita `src/data/program.js`. Para añadir o documentar un
+ejercicio nuevo (pro tips, errores comunes, ajuste de máquina, imagen), edita `src/data/exercises.js`.
