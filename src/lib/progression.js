@@ -11,6 +11,9 @@ export function suggestProgression(recentSessions, { repsLow, repsHigh }) {
   }
 
   const last = topSetOf(recentSessions[0]);
+  if (!last) {
+    return { action: "start", weightDeltaPct: 0, message: "Registra tu primer peso con RIR 2-3." };
+  }
 
   if (last.reps >= repsHigh && last.rir <= 2) {
     return {

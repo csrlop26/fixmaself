@@ -43,4 +43,28 @@ describe("suggestProgression", () => {
     const result = suggestProgression(recentSessions, RANGE);
     expect(result.action).toBe("decrease");
   });
+
+  it("holds weight exactly at repsLow (not below range)", () => {
+    const recentSessions = [
+      { date: "2026-07-28", sets: [{ weight: 40, reps: 8, rir: 2 }] },
+    ];
+    const result = suggestProgression(recentSessions, RANGE);
+    expect(result.action).toBe("hold");
+  });
+
+  it("increases weight exactly at repsHigh with RIR exactly at the threshold", () => {
+    const recentSessions = [
+      { date: "2026-07-28", sets: [{ weight: 40, reps: 10, rir: 2 }] },
+    ];
+    const result = suggestProgression(recentSessions, RANGE);
+    expect(result.action).toBe("increase");
+  });
+
+  it("holds weight above repsHigh when RIR is above the low-RIR threshold", () => {
+    const recentSessions = [
+      { date: "2026-07-28", sets: [{ weight: 40, reps: 11, rir: 3 }] },
+    ];
+    const result = suggestProgression(recentSessions, RANGE);
+    expect(result.action).toBe("hold");
+  });
 });
